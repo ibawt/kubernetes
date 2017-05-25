@@ -336,6 +336,22 @@ func TestServer(t *testing.T) {
 	testHandler(hcs, nsn2, http.StatusServiceUnavailable, 0, t)
 	testHandler(hcs, nsn3, http.StatusOK, 7, t)
 	testHandler(hcs, nsn4, http.StatusOK, 6, t)
+
+	// test handling the service not found
+	handler := hcs.services[nsn2].server.(*fakeHTTPServer).handler
+	delete(hcs.services, nsn2)
+
+	req, err := http.NewRequest("GET", "/healthz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp := httptest.NewRecorder()
+
+	handler.ServeHTTP(resp, req)
+
+	if resp.Code != http.StatusNotFound {
+		t.Errorf("expected status code %v, got %v", http.StatusNotFound, resp.Code)
+	}
 }
 
 func testHandler(hcs *server, nsn types.NamespacedName, status int, endpoints int, t *testing.T) {

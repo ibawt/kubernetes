@@ -197,8 +197,14 @@ var _ http.Handler = hcHandler{}
 
 func (h hcHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	h.hcs.lock.Lock()
-	count := h.hcs.services[h.name].endpoints
-	h.hcs.lock.Unlock()
+	defer h.hcs.lock.Unlock()
+
+	svc, found := h.hcs.services[h.name]
+	if !found {
+		http.Error(resp, "Service not found", http.StatusNotFound)
+		return
+	}
+	count := svc.endpoints
 
 	resp.Header().Set("Content-Type", "application/json")
 	if count == 0 {
